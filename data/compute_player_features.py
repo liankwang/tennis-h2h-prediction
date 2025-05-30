@@ -20,14 +20,10 @@ def compute_player_features(player_df):
 
     # Deal with missing values
     player_features = process_missing_values(player_features)
-    print("Done computing player features. Shape:", player_features.shape)
-    print("Features are:", player_features.columns.tolist())
 
     return player_features
     
 def compute_stats(player_df):
-    print("Computing serve and return stats...")
-
     # Calculate serve and return stats
     #print("Num of rows with NA for svpt:", len(player_df[player_df['svpt'].isna()]))
     player_df = player_df[player_df['svpt'].notna()].copy()
@@ -95,8 +91,6 @@ def compute_stats(player_df):
     player_features = pd.merge(player_means, player_stds, on='player_id')
 
     # Compute match stats
-    print("Computing match stats...")
-
     # Calculate win rate
     win_rate = player_df.groupby('player_id')['is_winner'].mean().reset_index()
     win_rate.columns = ['player_id', 'win_rate']
@@ -229,7 +223,6 @@ def compute_serve_return_stats(player_df):
     return player_features
 
 def compute_match_stats(player_df):
-    print("Computing match stats...")
     # Calculate win rate
     win_rate = player_df.groupby('player_id')['is_winner'].mean().reset_index()
     win_rate.columns = ['player_id', 'win_rate']
@@ -299,15 +292,13 @@ def get_sets_played(score):
     return len(completed_sets)
 
 def process_missing_values(player_features):
-    print("Processing missing values...")
-    print("Number of players before processing:", len(player_features))
+    print("Num players before processing missing values:", player_features.shape[0])
 
     # Only keep players with at least 10 matches
     player_features = player_features[player_features['total_matches'] >= 10]
 
     # Remove players with missing 1st serve win percentage (these are mostly players with only 1 match and they didn't serve)
     player_features[player_features['1st_serve_win_pct_mean'].isna()]
-    print("Number of players with missing 1st serve win percentage:", len(player_features[player_features['1st_serve_win_pct_mean'].isna()]))
 
     # Remove some columns
     player_features = player_features.drop(columns=['win_rate_BR', 'win_rate_ER', 'win_rate_RR', 'win_rate_R128', 'win_rate_Carpet'],

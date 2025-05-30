@@ -5,7 +5,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pandas as pd
 from data.data_processing import create_train_test_sets
 from train import train
-from evaluate import evaluate
+from evaluate import evaluate, visualize_results, visualize_results_over_cutoffs
+import seaborn as sns
+import json
+import matplotlib.pyplot as plt
 
 def main():
     # Read all ATP matches
@@ -13,40 +16,57 @@ def main():
     matches = pd.read_csv('data/matches.csv')
     player_df = pd.read_csv('data/expanded_matches.csv')
 
-    for cutoff in range(2024, 2025):
+    cutoff_range = range(2010, 2025)
+    accs = []
+    aucs = []
+
+    for cutoff in cutoff_range:
+        print(f"Running pipeline for cutoff year: {cutoff}")
+        
+        output_dir = f'output/logisticregression-{cutoff}'
+        os.makedirs(output_dir, exist_ok=True)
+
         # Create training and testing sets
         train_data, test_data = create_train_test_sets(matches, player_df, cutoff)
 
-        troubleshoot(train_data, test_data)
+        troubleshoot(train_data, test_data, cutoff, output_dir)
 
         # Train model
         model = train(train_data, model_type="logistic_regression")
 
-        # Evaluate model
-        acc = evaluate(model, test_data, model_type="logistic_regression")
-        print(f"Accuracy for cutoff year {cutoff}: {acc:.4f}")
+        # Evaluate model and visualize results
+        results = evaluate(model, test_data, model_type="logistic_regression")
+        visualize_results(results, cutoff, output_dir)
 
-def troubleshoot(train_data, test_data):
-    print("Train data shape:", train_data.shape)
-    print("Test data shape:", test_data.shape)
+        # Store accuracy and AUC
+        accs.append(results['acc'])
+        aucs.append(results['auc'])
+    
+    visualize_results_over_cutoffs(accs, aucs, cutoff_range, 'output')
 
-    # Check label distribution
-    print("Train data label distribution:")
-    print(train_data['label'].value_counts())
+def troubleshoot(train_data, test_data, cutoff, output_dir):
+    data_info = {
+        "train_data_shape": train_data.shape,
+        "test_data_shape": test_data.shape,
+        "train_label_distribution": train_data['label'].value_counts().to_dict(),
+        "test_label_distribution": test_data['label'].value_counts().to_dict(),
+        "missing_values_train": train_data.isnull().sum().to_dict(),
+        "missing_values_test": test_data.isnull().sum().to_dict()
+    }
 
-    print("Test data label distribution:")
-    print(test_data['label'].value_counts())
+    # Write the dictionary to a file
+    with open(f'{output_dir}/data_info.json', 'w') as f:
+        json.dump(data_info, f, indent=4)
 
-    # Check for missing values
-    print("\nMissing values in train data:")
-    print(train_data.isnull().sum())
+    # Check feature correlation
+    corr = train_data.corr()
+    sns.heatmap(corr, annot=False, cmap='coolwarm')
+    plt.title(f'Feature correlation (cutoff: {cutoff})')
+    plt.savefig(f'{output_dir}/feature_correlation.png', dpi=300)
+    plt.close()
+    # print("\nFeature correlation with label in train data:")
+    # print(train_data.corr()['label'].sort_values(ascending=False))
 
-    print("\nMissing values in test data:")
-    print(test_data.isnull().sum())
-
-    # Check correlation between features and target
-    print("\nFeature correlation with label in train data:")
-    print(train_data.corr()['label'].sort_values(ascending=False))
 
 
 if __name__ == "__main__":

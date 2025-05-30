@@ -9,7 +9,7 @@ def create_train_test_sets(matches, player_df, cutoff, comb='diff'):
     """
     Create training and testing sets based on the cutoff year.
     """
-    print("Creating train and test sets with cutoff year:", cutoff)
+    print("Creating train and test sets...")
 
     # Filter player df for training and testing
     player_df_train = player_df[player_df['year'] < cutoff]
@@ -18,7 +18,7 @@ def create_train_test_sets(matches, player_df, cutoff, comb='diff'):
     
     # Compute player features using train matches
     player_features = compute_player_features(player_df_train)
-    print("Done computing player features for train. Shape:", player_features.shape)
+    print(f"Done computing player features. Num players: {player_features.shape[0]}. Num features: {player_features.shape[1]}")
     
     # Create train and test set
     train_set = create_set(player_features, matches_train, comb)
@@ -82,10 +82,8 @@ def read_atp_matches(data_dir=None):
 
 def create_set(player_features, matches, comb):
     if comb == 'concat':
-        print("Creating concatenated set...")
         return create_concat_set(player_features, matches)
     elif comb == 'diff':
-        print("Creating difference set...")
         return create_difference_set(player_features, matches)
 
 def create_concat_set(player_features, matches):
