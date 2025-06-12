@@ -26,6 +26,35 @@ def create_train_test_sets(matches, player_df, cutoff, comb='diff'):
     
     return train_set, test_set
 
+def create_train_test_sets_elo(path, cutoff):
+    matches = pd.read_csv(path)
+    train_data = []
+    test_data = []
+    for _, row in matches.iterrows():
+        year = pd.to_datetime(row['tourney_date'], format='%Y-%m-%d').year
+        if year < cutoff:
+            train_data.append({
+                'elo_diff': row['elo_diff'],
+                'label': 1
+            })
+            train_data.append({
+                'elo_diff': -row['elo_diff'],
+                'label': 0
+            })
+        elif year == cutoff:
+            test_data.append({
+                'elo_diff': row['elo_diff'],
+                'label': 1
+            })
+            test_data.append({
+                'elo_diff': -row['elo_diff'],
+                'label': 0
+            })
+        else:
+            break
+    return pd.DataFrame(train_data), pd.DataFrame(test_data)
+
+
 def read_atp_matches(data_dir=None):
     """
     Read all ATP match files from 1968 to 2024 and combine them into a single DataFrame.

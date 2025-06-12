@@ -3,7 +3,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
-from data.data_processing import create_train_test_sets
+from data.data_processing import create_train_test_sets, create_train_test_sets_elo
 from train import train
 from evaluate import evaluate, visualize_results, visualize_results_over_cutoffs
 import seaborn as sns
@@ -20,29 +20,44 @@ def main():
     accs = []
     aucs = []
 
+    accs_elo = []
+    aucs_elo = []
+
     for cutoff in cutoff_range:
         print(f"Running pipeline for cutoff year: {cutoff}")
         
         output_dir = f'output/logisticregression-{cutoff}'
         os.makedirs(output_dir, exist_ok=True)
+        
+        output_dir_elo = f'output/logisticregression-elo-{cutoff}'
+        os.makedirs(output_dir_elo, exist_ok=True)
 
         # Create training and testing sets
-        train_data, test_data = create_train_test_sets(matches, player_df, cutoff)
+        # train_data, test_data = create_train_test_sets(matches, player_df, cutoff)
+        train_data_elo, test_data_elo = create_train_test_sets_elo('data/matches_with_elo_diff.csv', cutoff)
 
-        troubleshoot(train_data, test_data, cutoff, output_dir)
+        # troubleshoot(train_data, test_data, cutoff, output_dir)
 
-        # Train model
-        model = train(train_data, model_type="logistic_regression")
+        # Train models
+        # model = train(train_data, model_type="logistic_regression")
+        model_elo = train(train_data_elo, model_type="logistic_regression")
 
         # Evaluate model and visualize results
-        results = evaluate(model, test_data, model_type="logistic_regression")
-        visualize_results(results, cutoff, output_dir)
+        # results = evaluate(model, test_data, model_type="logistic_regression")
+        results_elo = evaluate(model_elo, test_data_elo, model_type="logistic_regression")
+
+        # visualize_results(results, cutoff, output_dir)
+        # visualize_results(results_elo, cutoff, output_dir_elo)
 
         # Store accuracy and AUC
-        accs.append(results['acc'])
-        aucs.append(results['auc'])
+        # accs.append(results['acc'])
+        # aucs.append(results['auc'])
+        accs_elo.append(results_elo['acc'])
+        aucs_elo.append(results_elo['auc'])
     
-    visualize_results_over_cutoffs(accs, aucs, cutoff_range, 'output')
+    # visualize_results_over_cutoffs(accs, aucs, cutoff_range, 'output/logisticregression')
+    visualize_results_over_cutoffs(accs_elo, aucs_elo, cutoff_range, 'output/logisticregression-elo')
+    
 
 def troubleshoot(train_data, test_data, cutoff, output_dir):
     data_info = {
